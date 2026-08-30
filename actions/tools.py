@@ -498,4 +498,61 @@ def read_local_document(filepath: str) -> str:
     except Exception as e:
         return f"Hujjatni o'qishda xatolik yuz berdi: {e}"
 
+def stop_youtube() -> str:
+    """
+    Stops YouTube playback by closing any open YouTube tabs in Google Chrome and Safari.
+    Use this when the user wants to stop, turn off, pause, or close the YouTube music, song, or video.
+    """
+    print("🔧 Jarvis: YouTubedagi ijroni to'xtatmoqda (tablarni yopmoqda)...")
+    try:
+        # AppleScript for Google Chrome (safely loop end-to-beginning to avoid indexing bugs)
+        chrome_script = """
+        tell application "Google Chrome"
+            set closed_any to false
+            try
+                repeat with w in windows
+                    set tab_list to tabs of w
+                    repeat with i from (count of tab_list) to 1 by -1
+                        set t to item i of tab_list
+                        if URL of t contains "youtube.com" or URL of t contains "youtu.be" then
+                            close t
+                            set closed_any to true
+                        end if
+                    end repeat
+                end repeat
+            end try
+            return closed_any
+        end tell
+        """
+        # AppleScript for Safari
+        safari_script = """
+        tell application "Safari"
+            set closed_any to false
+            try
+                repeat with w in windows
+                    set tab_list to tabs of w
+                    repeat with i from (count of tab_list) to 1 by -1
+                        set t to item i of tab_list
+                        if URL of t contains "youtube.com" or URL of t contains "youtu.be" then
+                            close t
+                            set closed_any to true
+                        end if
+                    end repeat
+                end repeat
+            end try
+            return closed_any
+        end tell
+        """
+        
+        chrome_res = subprocess.run(["osascript", "-e", chrome_script], capture_output=True, text=True).stdout.strip()
+        safari_res = subprocess.run(["osascript", "-e", safari_script], capture_output=True, text=True).stdout.strip()
+        
+        if "true" in chrome_res or "true" in safari_res:
+            return "YouTube ijrosi muvaffaqiyatli to'xtatildi."
+        else:
+            return "Hech qanday ochiq YouTube sahifasi topilmadi."
+    except Exception as e:
+        return f"YouTube ijrosini to'xtatishda xatolik: {e}"
+
+
 

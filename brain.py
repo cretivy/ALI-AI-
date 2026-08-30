@@ -18,7 +18,8 @@ from actions.tools import (
     get_calendar_events,
     add_reminder,
     get_reminders,
-    read_local_document
+    read_local_document,
+    stop_youtube
 )
 
 class JarvisBrain:
@@ -62,7 +63,8 @@ class JarvisBrain:
                     get_calendar_events,
                     add_reminder,
                     get_reminders,
-                    read_local_document
+                    read_local_document,
+                    stop_youtube
                 ]
                 response = self.client.models.generate_content(
                     model="gemini-2.5-flash",
