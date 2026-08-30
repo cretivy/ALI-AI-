@@ -1,0 +1,15 @@
+torch
+torchaudio
+transformers
+datasets
+accelerate
+sounddevice
+soundfile
+numpy
+scipy
+google-genai
+edge-tts
+pygame
+python-dotenv
+rich
+requests
