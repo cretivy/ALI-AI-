@@ -138,59 +138,61 @@ class JarvisTelegramBot:
 
 
     def process_and_send_response(self, chat_id, response_text):
-        """Checks response text for media paths, sends appropriate files to Telegram, cleans up temp files, and returns clean text"""
+        """Checks response text for media paths and drains pending media queue to send files to Telegram and clean up"""
         clean_text = response_text
+        sent_paths = set()
         
-        # 1. Screenshot
+        # 1. Check text tags (SCREENSHOT_PATH, WEBCAM_PATH, VIDEO_NOTE_PATH, FILE_PATH)
         if "SCREENSHOT_PATH:" in clean_text:
             match = re.search(r'SCREENSHOT_PATH:(\S+)', clean_text)
             if match:
                 path = match.group(1).strip()
                 clean_text = clean_text.replace(f"SCREENSHOT_PATH:{path}", "").strip()
-                if os.path.exists(path):
+                if os.path.exists(path) and path not in sent_paths:
                     self.send_photo(chat_id, path, caption="📸 Mac Ekran Skrinshoti")
+                    sent_paths.add(path)
                     try:
                         os.remove(path)
                         print(f"🧹 Avtomatik tozalandi: {path}")
                     except Exception:
                         pass
                         
-        # 2. Webcam Photo
         if "WEBCAM_PATH:" in clean_text:
             match = re.search(r'WEBCAM_PATH:(\S+)', clean_text)
             if match:
                 path = match.group(1).strip()
                 clean_text = clean_text.replace(f"WEBCAM_PATH:{path}", "").strip()
-                if os.path.exists(path):
+                if os.path.exists(path) and path not in sent_paths:
                     self.send_photo(chat_id, path, caption="📷 Mac Kamerasidan Foto")
+                    sent_paths.add(path)
                     try:
                         os.remove(path)
                         print(f"🧹 Avtomatik tozalandi: {path}")
                     except Exception:
                         pass
 
-        # 3. Video Note ('Krujok')
         if "VIDEO_NOTE_PATH:" in clean_text:
             match = re.search(r'VIDEO_NOTE_PATH:(\S+)', clean_text)
             if match:
                 path = match.group(1).strip()
                 clean_text = clean_text.replace(f"VIDEO_NOTE_PATH:{path}", "").strip()
-                if os.path.exists(path):
+                if os.path.exists(path) and path not in sent_paths:
                     self.send_video_note(chat_id, path)
+                    sent_paths.add(path)
                     try:
                         os.remove(path)
                         print(f"🧹 Avtomatik tozalandi: {path}")
                     except Exception:
                         pass
 
-        # 4. Search File
         if "FILE_PATH:" in clean_text:
             match = re.search(r'FILE_PATH:(\S+)', clean_text)
             if match:
                 path = match.group(1).strip()
                 clean_text = clean_text.replace(f"FILE_PATH:{path}", "").strip()
-                if os.path.exists(path):
+                if os.path.exists(path) and path not in sent_paths:
                     self.send_document(chat_id, path, caption=f"📁 Fayl: {os.path.basename(path)}")
+                    sent_paths.add(path)
                     if path.startswith("/tmp/"):
                         try:
                             os.remove(path)
@@ -198,10 +200,38 @@ class JarvisTelegramBot:
                         except Exception:
                             pass
 
-        if not clean_text:
+        # 2. Drain registered pending media files queue
+        try:
+            from actions.tools import get_and_clear_pending_media
+            pending_items = get_and_clear_pending_media()
+            for item in pending_items:
+                m_type = item.get("type")
+                path = item.get("path")
+                if path and os.path.exists(path) and path not in sent_paths:
+                    sent_paths.add(path)
+                    if m_type == "video_note":
+                        self.send_video_note(chat_id, path)
+                    elif m_type in ["screenshot", "webcam_photo"]:
+                        caption = "📸 Mac Ekran Skrinshoti" if m_type == "screenshot" else "📷 Mac Kamerasidan Foto"
+                        self.send_photo(chat_id, path, caption=caption)
+                    elif m_type == "file":
+                        self.send_document(chat_id, path, caption=f"📁 Fayl: {os.path.basename(path)}")
+
+                    # Cleanup file from /tmp/
+                    if path.startswith("/tmp/"):
+                        try:
+                            os.remove(path)
+                            print(f"🧹 Avtomatik tozalandi: {path}")
+                        except Exception as e:
+                            print(f"⚠️ Faylni o'chirishda xatolik: {e}")
+        except Exception as e:
+            print(f"⚠️ Pending media delivery error: {e}")
+
+        if not clean_text or clean_text.strip() == "":
             clean_text = "Buyruq bajarildi."
             
         return clean_text
+
 
     def handle_voice_message(self, file_id, chat_id):
         """Downloads, transcribes voice message, runs intent, and replies with voice + text"""

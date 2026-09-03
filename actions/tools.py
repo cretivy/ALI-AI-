@@ -554,6 +554,21 @@ def stop_youtube() -> str:
     except Exception as e:
         return f"YouTube ijrosini to'xtatishda xatolik: {e}"
 
+PENDING_MEDIA_FILES = []
+
+def register_pending_media(media_type: str, path: str):
+    """Registers a media file for Telegram delivery"""
+    if os.path.exists(path):
+        PENDING_MEDIA_FILES.append({"type": media_type, "path": path})
+        print(f"📌 Yangi media ro'yxatga olindi [{media_type}]: {path}")
+
+def get_and_clear_pending_media():
+    """Returns all pending media files and clears the queue"""
+    global PENDING_MEDIA_FILES
+    items = list(PENDING_MEDIA_FILES)
+    PENDING_MEDIA_FILES.clear()
+    return items
+
 def take_screenshot() -> str:
     """
     Captures a full screenshot of the macOS screen and saves it as a temporary image.
@@ -562,7 +577,12 @@ def take_screenshot() -> str:
     print("🔧 Jarvis: Mac ekranini rasmga olmoqda...")
     try:
         path = "/tmp/jarvis_screenshot.png"
+        if os.path.exists(path):
+            try: os.remove(path)
+            except Exception: pass
+            
         subprocess.run(["screencapture", "-x", path], check=True)
+        register_pending_media("screenshot", path)
         return f"SCREENSHOT_PATH:{path}"
     except Exception as e:
         return f"Skrinshot olishda xatolik: {e}"
@@ -575,6 +595,10 @@ def take_webcam_photo() -> str:
     print("🔧 Jarvis: Mac kamerasidan foto surat olmoqda...")
     try:
         path = "/tmp/jarvis_webcam.png"
+        if os.path.exists(path):
+            try: os.remove(path)
+            except Exception: pass
+            
         ffmpeg_path = "ffmpeg"
         if os.path.exists("/opt/homebrew/bin/ffmpeg"):
             ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
@@ -582,6 +606,7 @@ def take_webcam_photo() -> str:
         cmd = [ffmpeg_path, "-y", "-f", "avfoundation", "-framerate", "30", "-video_size", "1280x720", "-i", "0", "-vframes", "1", path]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         if proc.returncode == 0 and os.path.exists(path):
+            register_pending_media("webcam_photo", path)
             return f"WEBCAM_PATH:{path}"
         else:
             return f"Kameradan rasm olishda xatolik: {proc.stderr[:300]}"
@@ -600,6 +625,10 @@ def record_webcam_video_note(duration_seconds: int = 5) -> str:
     try:
         duration = max(3, min(int(duration_seconds), 15))
         path = "/tmp/jarvis_video_note.mp4"
+        if os.path.exists(path):
+            try: os.remove(path)
+            except Exception: pass
+            
         ffmpeg_path = "ffmpeg"
         if os.path.exists("/opt/homebrew/bin/ffmpeg"):
             ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
@@ -616,13 +645,17 @@ def record_webcam_video_note(duration_seconds: int = 5) -> str:
             "-pix_fmt", "yuv420p",
             path
         ]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=duration + 10)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=duration + 15)
         if proc.returncode == 0 and os.path.exists(path):
+            register_pending_media("video_note", path)
             return f"VIDEO_NOTE_PATH:{path}"
         else:
+            print(f"⚠️ ffmpeg error: {proc.stderr}")
             return f"Video yozishda xatolik: {proc.stderr[:300]}"
     except Exception as e:
+        print(f"⚠️ record_webcam_video_note exception: {e}")
         return f"Video yozishda xatolik: {e}"
+
 
 def get_system_stats() -> str:
     """
@@ -748,9 +781,11 @@ def search_and_send_file(filename_query: str) -> str:
             return f"'{filename_query}' nomli fayl topilmadi."
             
         target_path = lines[0]
+        register_pending_media("file", target_path)
         return f"FILE_PATH:{target_path}"
     except Exception as e:
         return f"Fayl qidirishda xatolik: {e}"
+
 
 def set_timer(minutes: float, message: str = "Vaqt tugadi!") -> str:
     """
