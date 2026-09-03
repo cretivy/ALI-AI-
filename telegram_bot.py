@@ -97,25 +97,28 @@ class JarvisTelegramBot:
         """Sends photo to Telegram chat"""
         try:
             with open(photo_path, "rb") as f:
-                requests.post(
+                r = requests.post(
                     f"{self.api_url}/sendPhoto",
                     data={"chat_id": chat_id, "caption": caption, "parse_mode": "Markdown"},
                     files={"photo": f},
                     timeout=30
                 )
+                print(f"📸 Telegram SendPhoto natijasi: {r.status_code}")
         except Exception as e:
             print(f"⚠️ Photo sending error: {e}")
 
     def send_video_note(self, chat_id, video_path):
         """Sends 1:1 round video note ('krujok') to Telegram chat"""
         try:
+            print(f"📤 Telegram'ga video note ('krujok') yuborilmoqda... Path: {video_path}")
             with open(video_path, "rb") as f:
-                requests.post(
+                r = requests.post(
                     f"{self.api_url}/sendVideoNote",
                     data={"chat_id": chat_id},
                     files={"video_note": f},
                     timeout=45
                 )
+                print(f"📹 Telegram SendVideoNote natijasi: {r.status_code} - {r.text[:200]}")
         except Exception as e:
             print(f"⚠️ Video note sending error: {e}")
 
@@ -123,14 +126,16 @@ class JarvisTelegramBot:
         """Sends local document/file to Telegram chat"""
         try:
             with open(doc_path, "rb") as f:
-                requests.post(
+                r = requests.post(
                     f"{self.api_url}/sendDocument",
                     data={"chat_id": chat_id, "caption": caption, "parse_mode": "Markdown"},
                     files={"document": f},
                     timeout=60
                 )
+                print(f"📁 Telegram SendDocument natijasi: {r.status_code}")
         except Exception as e:
             print(f"⚠️ Document sending error: {e}")
+
 
     def process_and_send_response(self, chat_id, response_text):
         """Checks response text for media paths, sends appropriate files to Telegram, cleans up temp files, and returns clean text"""

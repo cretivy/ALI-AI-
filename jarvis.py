@@ -38,12 +38,18 @@ class JarvisAssistant:
 
     def execute_action(self, intent_data):
         intent = intent_data.get("intent", "chat")
-        response_text = intent_data.get("response_text", "Buyruq bajarildi.")
+        raw_response_text = intent_data.get("response_text", "Buyruq bajarildi.")
         params = intent_data.get("parameters", {})
         action_detail = ""
 
-        # Speak initial voice response to user
-        self.tts.speak(response_text)
+        # Deliver media to Telegram if available and authorized user exists
+        clean_text = raw_response_text
+        if hasattr(self, "tg_bot") and self.tg_bot and config.ALLOWED_TELEGRAM_USER_IDS:
+            owner_id = config.ALLOWED_TELEGRAM_USER_IDS[0]
+            clean_text = self.tg_bot.process_and_send_response(owner_id, raw_response_text)
+
+        # Speak clean voice response to user
+        self.tts.speak(clean_text)
 
         # Dispatch action based on intent
         if intent == "gemini_tool_execution":
@@ -63,12 +69,13 @@ class JarvisAssistant:
             success, action_detail = set_volume(action)
         elif intent == "shutdown":
             action_detail = "Jarvis to'liq o'chirildi."
-            show_action_result(intent, response_text, action_detail)
+            show_action_result(intent, clean_text, action_detail)
             sys.exit(0)
         else:
             action_detail = "Suhbat rejasi bajarildi."
 
-        show_action_result(intent, response_text, action_detail)
+        show_action_result(intent, clean_text, action_detail)
+
 
     def listen_and_process(self, record_duration=6):
         """One round of listening, transcription, thinking, and executing action"""
