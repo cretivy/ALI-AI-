@@ -13,7 +13,14 @@
 
 * 🎙️ **O'zbek nutqini aniqlash (ASR/STT):** Apple Silicon GPU (MPS) jadallatgichida ishlaydigan shaxsiy `rubaistt_v2_medium` modeli orqali o'zbekcha nutqni lahzalarda matnga o'giradi.
 * 🗣️ **Tabiiy Ovozda Javob (TTS):** Edge TTS texnologiyasi yordamida eng yuqori sifatli tabiiy o'zbek ayol ovozida (`uz-UZ-MadinaNeural`) sizga ovozda javob qaytaradi.
-* 📱 **Telegram Ratsiya Boshqaruvi:** Telefoningiz orqali botga ovozli xabarlar yuborib Mac kompyuteringizni masofadan boshqaring (Kino qo'yish, fayl yuborish, ekranni yopish).
+* 📱 **Telegram Ratsiya Boshqaruvi:** Telefoningiz orqali botga ovozli xabarlar yuborib Mac kompyuteringizni masofadan boshqaring.
+* 📸 **Ekran Skrinshoti & 📷 Kamera Fotosurati:** Mac ekranini va kamerasidan foto oling va Telegramga uzating.
+* ⭕ **Telegram Video Note ("Krujok"):** Mac kamerasidan 5-10 soniyalik 1:1 kvadrat formatda **yumaloq video xabar** yozib Telegramga yuboradi!
+* 🧹 **Avtomatik Xotira Tozalash:** Barcha yuborilgan rasmlar, videolar va ovozli fayllar Telegramga yetkazilgach Mac xotirasidan (`/tmp/`) darhol o'chiriladi.
+* 📊 **Mac Tizim Monitoringi:** Batareya foizi, CPU %, RAM %, bo'sh Disk joyi haqida hisobot olish.
+* 👁️ **Gemini Vision Rasm Tahlili:** Telegramga yuborilgan har qanday rasm yoki kod skrinshotini AI orqali o'zbekcha tahlil qilib berish.
+* 🎵 **Spotify / Musiqa Boshqaruvi:** Qo'shiqni to'xtatish, davom ettirish, keyingi qo'shiqqa o'tish va ijro etilayotgan trek nomini bilish.
+* ⏰ **Bildirishnomali Taymer:** Orqa fonda taymer o'rnatish (vaqt tugaganda Mac va Telegram bildirishnomalari yuboriladi).
 * 🔒 **Xavfsizlik Whitelist Tizimi:** Xavfsizligingiz uchun bot faqat `.env` faylida ko'rsatilgan sizning shaxsiy Telegram ID raqamingizga bo'ysunadi.
 * 🛠️ **macOS Tizim Boshqaruvi:** 
   * Ilovalarni ochish (Safari, Telegram, Spotify, Finder va h.k.).
@@ -28,7 +35,7 @@
 
 ### 1. Talablar:
 * macOS operatsion tizimi (Apple Silicon M1/M2/M3/M4/M5 tavsiya etiladi).
-* `ffmpeg` (audio konversiya uchun). Uni o'rnatish uchun terminalda yozing:
+* `ffmpeg` (audio/video konversiya uchun). Uni o'rnatish uchun terminalda yozing:
   ```bash
   brew install ffmpeg
   ```
@@ -47,7 +54,7 @@ pip install -r requirements.txt
 ```
 
 ### 4. Sozlamalarni kiritish (.env):
-Loyiha papkasida `.env` degan fayl yarating (yoki `.env.example` faylidan nusxa oling) va quyidagi kalitlarni yozing (hech qachon ushbu faylni GitHub'ga yuklamang!):
+Loyiha papkasida `.env` degan fayl yarating (yoki `.env.example` faylidan nusxa oling) va quyidagi kalitlarni yozing:
 ```env
 GEMINI_API_KEY=sizning_gemini_api_kalitingiz
 TELEGRAM_BOT_TOKEN=sizning_telegram_bot_tokeningiz
@@ -76,21 +83,26 @@ Dastur yoqilganda sizga quyidagi buyruq rejimlari taklif etiladi:
 
 ```mermaid
 graph TD
-    User([Foydalanuvchi]) -->|Ovozli Xabar / Matn| TelegramBot[Telegram Bot]
+    User([Foydalanuvchi]) -->|Ovozli / Video / Rasm| TelegramBot[Telegram Bot]
     User -->|Mikrofon| LocalCLI[Mac Terminal CLI]
     
     TelegramBot -->|OGG Audio| AudioConv[FFmpeg WAV konversiya]
     AudioConv --> STT[Uzbek STT Model]
     LocalCLI --> STT
     
+    TelegramBot -->|Rasm / Visual| Vision[Gemini 2.5 Vision]
+    
     STT -->|O'zbekcha Matn| Brain[Jarvis Gemini Brain]
     Brain -->|Tool Calling| Tools[macOS Tools & Actions]
     
+    Tools -->|FFmpeg| VideoNote[1:1 Video Note Krujok]
     Tools -->|AppleScript/Bash| MacSystem[macOS System / Apps]
+    Tools -->|psutil/pmset| Stats[System Health & Battery]
     Tools -->|File Reader| Files[Local Documents]
     
     Brain -->|Javob matni| TTS[Uzbek TTS Engine]
     TTS -->|Ovozli Javob| User
+    VideoNote -->|Avto-Clean Cleanup| TelegramBot
 ```
 
 ---

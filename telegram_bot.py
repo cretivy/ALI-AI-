@@ -4,6 +4,7 @@ import time
 import tempfile
 import subprocess
 import requests
+import re
 import soundfile as sf
 import numpy as np
 
@@ -77,7 +78,6 @@ class JarvisTelegramBot:
     def convert_ogg_to_wav(self, ogg_path, wav_path):
         """Converts Telegram .ogg (Opus) to standard 16kHz WAV mono"""
         try:
-            # We check if ffmpeg is in homebrew or path
             ffmpeg_path = "ffmpeg"
             if os.path.exists("/opt/homebrew/bin/ffmpeg"):
                 ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
@@ -92,6 +92,111 @@ class JarvisTelegramBot:
         except Exception as e:
             print(f"⚠️ Ffmpeg execution error: {e}")
             return False
+
+    def send_photo(self, chat_id, photo_path, caption=""):
+        """Sends photo to Telegram chat"""
+        try:
+            with open(photo_path, "rb") as f:
+                requests.post(
+                    f"{self.api_url}/sendPhoto",
+                    data={"chat_id": chat_id, "caption": caption, "parse_mode": "Markdown"},
+                    files={"photo": f},
+                    timeout=30
+                )
+        except Exception as e:
+            print(f"⚠️ Photo sending error: {e}")
+
+    def send_video_note(self, chat_id, video_path):
+        """Sends 1:1 round video note ('krujok') to Telegram chat"""
+        try:
+            with open(video_path, "rb") as f:
+                requests.post(
+                    f"{self.api_url}/sendVideoNote",
+                    data={"chat_id": chat_id},
+                    files={"video_note": f},
+                    timeout=45
+                )
+        except Exception as e:
+            print(f"⚠️ Video note sending error: {e}")
+
+    def send_document(self, chat_id, doc_path, caption=""):
+        """Sends local document/file to Telegram chat"""
+        try:
+            with open(doc_path, "rb") as f:
+                requests.post(
+                    f"{self.api_url}/sendDocument",
+                    data={"chat_id": chat_id, "caption": caption, "parse_mode": "Markdown"},
+                    files={"document": f},
+                    timeout=60
+                )
+        except Exception as e:
+            print(f"⚠️ Document sending error: {e}")
+
+    def process_and_send_response(self, chat_id, response_text):
+        """Checks response text for media paths, sends appropriate files to Telegram, cleans up temp files, and returns clean text"""
+        clean_text = response_text
+        
+        # 1. Screenshot
+        if "SCREENSHOT_PATH:" in clean_text:
+            match = re.search(r'SCREENSHOT_PATH:(\S+)', clean_text)
+            if match:
+                path = match.group(1).strip()
+                clean_text = clean_text.replace(f"SCREENSHOT_PATH:{path}", "").strip()
+                if os.path.exists(path):
+                    self.send_photo(chat_id, path, caption="📸 Mac Ekran Skrinshoti")
+                    try:
+                        os.remove(path)
+                        print(f"🧹 Avtomatik tozalandi: {path}")
+                    except Exception:
+                        pass
+                        
+        # 2. Webcam Photo
+        if "WEBCAM_PATH:" in clean_text:
+            match = re.search(r'WEBCAM_PATH:(\S+)', clean_text)
+            if match:
+                path = match.group(1).strip()
+                clean_text = clean_text.replace(f"WEBCAM_PATH:{path}", "").strip()
+                if os.path.exists(path):
+                    self.send_photo(chat_id, path, caption="📷 Mac Kamerasidan Foto")
+                    try:
+                        os.remove(path)
+                        print(f"🧹 Avtomatik tozalandi: {path}")
+                    except Exception:
+                        pass
+
+        # 3. Video Note ('Krujok')
+        if "VIDEO_NOTE_PATH:" in clean_text:
+            match = re.search(r'VIDEO_NOTE_PATH:(\S+)', clean_text)
+            if match:
+                path = match.group(1).strip()
+                clean_text = clean_text.replace(f"VIDEO_NOTE_PATH:{path}", "").strip()
+                if os.path.exists(path):
+                    self.send_video_note(chat_id, path)
+                    try:
+                        os.remove(path)
+                        print(f"🧹 Avtomatik tozalandi: {path}")
+                    except Exception:
+                        pass
+
+        # 4. Search File
+        if "FILE_PATH:" in clean_text:
+            match = re.search(r'FILE_PATH:(\S+)', clean_text)
+            if match:
+                path = match.group(1).strip()
+                clean_text = clean_text.replace(f"FILE_PATH:{path}", "").strip()
+                if os.path.exists(path):
+                    self.send_document(chat_id, path, caption=f"📁 Fayl: {os.path.basename(path)}")
+                    if path.startswith("/tmp/"):
+                        try:
+                            os.remove(path)
+                            print(f"🧹 Avtomatik tozalandi: {path}")
+                        except Exception:
+                            pass
+
+        if not clean_text:
+            clean_text = "Buyruq bajarildi."
+            
+        return clean_text
 
     def handle_voice_message(self, file_id, chat_id):
         """Downloads, transcribes voice message, runs intent, and replies with voice + text"""
@@ -145,10 +250,13 @@ class JarvisTelegramBot:
             
             # 5. Process command using Gemini Brain
             intent_data = self.brain.process_command(transcript)
-            response_text = intent_data.get("response_text", "Amal bajarildi.")
+            raw_response_text = intent_data.get("response_text", "Amal bajarildi.")
             
-            # 6. Send response as voice and text
-            self.send_voice_response(chat_id, response_text)
+            # 6. Send any attached media (photos, video notes, docs) & clean text
+            clean_text = self.process_and_send_response(chat_id, raw_response_text)
+            
+            # 7. Send response as voice and text
+            self.send_voice_response(chat_id, clean_text)
             
         except Exception as e:
             print(f"⚠️ Ovozli xabarni qayta ishlashda xatolik: {e}")
@@ -161,13 +269,48 @@ class JarvisTelegramBot:
         try:
             # Process command
             intent_data = self.brain.process_command(text)
-            response_text = intent_data.get("response_text", "Amal bajarildi.")
+            raw_response_text = intent_data.get("response_text", "Amal bajarildi.")
+            
+            # Send media if any & clean text
+            clean_text = self.process_and_send_response(chat_id, raw_response_text)
             
             # Reply
-            self.send_voice_response(chat_id, response_text)
+            self.send_voice_response(chat_id, clean_text)
         except Exception as e:
             print(f"⚠️ Matnli xabarni qayta ishlashda xatolik: {e}")
             self.send_message(chat_id, f"⚠️ Xatolik yuz berdi: {e}")
+
+    def handle_photo_message(self, photo_array, chat_id, caption=""):
+        """Downloads photo, sends to Gemini Vision, and replies with analysis"""
+        print(f"🖼️ Yangi rasm qabul qilindi. Chat ID: {chat_id}")
+        try:
+            photo = photo_array[-1]
+            file_id = photo["file_id"]
+            
+            r = requests.get(f"{self.api_url}/getFile", params={"file_id": file_id}, timeout=10)
+            if r.status_code != 200:
+                self.send_message(chat_id, "⚠️ Rasmni Telegramdan yuklab bo'lmadi.")
+                return
+                
+            file_path = r.json().get("result", {}).get("file_path")
+            img_url = f"{self.file_url}/{file_path}"
+            img_bytes = requests.get(img_url, timeout=20).content
+            
+            temp_img_path = "/tmp/telegram_incoming_img.jpg"
+            with open(temp_img_path, "wb") as f:
+                f.write(img_bytes)
+                
+            analysis = self.brain.analyze_image(temp_img_path, prompt=caption)
+            
+            # Clean up temp image immediately
+            if os.path.exists(temp_img_path):
+                os.remove(temp_img_path)
+                print(f"🧹 Avtomatik tozalandi: {temp_img_path}")
+                
+            self.send_voice_response(chat_id, analysis)
+        except Exception as e:
+            print(f"⚠️ Rasm tahlilida xatolik: {e}")
+            self.send_message(chat_id, f"⚠️ Rasmni tahlil qilishda xatolik yuz berdi: {e}")
 
     def send_message(self, chat_id, text):
         """Sends text message to Telegram chat"""
@@ -190,11 +333,9 @@ class JarvisTelegramBot:
             temp_voice_path = fp.name
             
         try:
-            # Generate audio in temp path using edge-tts
             import asyncio
             asyncio.run(self.tts._generate_audio(text, temp_voice_path))
             
-            # Send file as voice note
             with open(temp_voice_path, "rb") as voice_file:
                 requests.post(
                     f"{self.api_url}/sendVoice",
@@ -255,6 +396,11 @@ class JarvisTelegramBot:
                     elif "audio" in message:
                         file_id = message["audio"]["file_id"]
                         self.handle_voice_message(file_id, chat_id)
+
+                    # Handle Photo message
+                    elif "photo" in message:
+                        caption = message.get("caption", "")
+                        self.handle_photo_message(message["photo"], chat_id, caption)
                         
                     # Handle Text message
                     elif "text" in message:
@@ -264,8 +410,13 @@ class JarvisTelegramBot:
                                 chat_id,
                                 f"🤖 *Assalomu alaykum, {first_name}!* \n"
                                 "Men sizning Mac kompyuteringizni masofadan boshqaruvchi Jarvis botiman.\n\n"
-                                "Siz menga ovozli xabar yuborishingiz yoki matnli buyruq kiritishingiz mumkin.\n"
-                                "Masalan: _'Desktopda yangi test papka och'_"
+                                "Siz menga ovozli xabar yuborishingiz, rasm jo'natishingiz yoki matnli buyruq kiritishingiz mumkin.\n\n"
+                                "📸 _'Ekranni rasmga olib yubor'_\n"
+                                "⭕ _'Xonani videoga olib yubor (krujok)'_\n"
+                                "📊 _'Batareya va xotira holati qanday?'_\n"
+                                "🎵 _'Musiqani to'xtat'_\n"
+                                "⏰ _'10 daqiqadan keyin taymer ber'_\n"
+                                "🖼️ _Rasm yuborsangiz, uni AI orqali tahlil qilib beraman!_"
                             )
                         else:
                             self.handle_text_message(text, chat_id)

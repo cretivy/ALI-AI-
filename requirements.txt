@@ -13,3 +13,5 @@ pygame
 python-dotenv
 rich
 requests
+pillow
+psutil

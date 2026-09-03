@@ -3,6 +3,8 @@ import re
 import os
 import config
 from google.genai import types
+from PIL import Image
+
 from actions.tools import (
     open_application,
     run_applescript,
@@ -19,7 +21,17 @@ from actions.tools import (
     add_reminder,
     get_reminders,
     read_local_document,
-    stop_youtube
+    stop_youtube,
+    take_screenshot,
+    take_webcam_photo,
+    record_webcam_video_note,
+    get_system_stats,
+    set_system_volume,
+    control_music,
+    sleep_mac,
+    search_and_send_file,
+    set_timer,
+    summarize_webpage
 )
 
 class JarvisBrain:
@@ -34,6 +46,25 @@ class JarvisBrain:
                 print("🧠 Gemini API bilan ulandi!")
             except Exception as e:
                 print(f"⚠️ Gemini SDK ulanishida xatolik: {e}")
+
+    def analyze_image(self, image_path: str, prompt: str = "") -> str:
+        """Analyzes an image using Gemini Vision model and returns description/answer in Uzbek"""
+        if not self.client:
+            return "Kechirasiz, Gemini API ulanmaganligi sababli rasmni tahlil qila olmayman."
+            
+        try:
+            print(f"👁️ Gemini Vision: Rasmni tahlil qilmoqda: {image_path}...")
+            img = Image.open(image_path)
+            full_prompt = prompt.strip() if prompt else "Ushbu rasmni o'zbek tilida batafsil va tushunarli qilib tahlil qilib ber."
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[img, full_prompt]
+            )
+            return response.text.strip()
+        except Exception as e:
+            print(f"⚠️ Gemini Vision xatoligi: {e}")
+            return f"Rasmni tahlil qilishda xatolik yuz berdi: {e}"
 
     def process_command(self, user_text):
         """Processes user Uzbek transcript and returns structured intent JSON"""
@@ -64,7 +95,17 @@ class JarvisBrain:
                     add_reminder,
                     get_reminders,
                     read_local_document,
-                    stop_youtube
+                    stop_youtube,
+                    take_screenshot,
+                    take_webcam_photo,
+                    record_webcam_video_note,
+                    get_system_stats,
+                    set_system_volume,
+                    control_music,
+                    sleep_mac,
+                    search_and_send_file,
+                    set_timer,
+                    summarize_webpage
                 ]
                 response = self.client.models.generate_content(
                     model="gemini-2.5-flash",
@@ -76,7 +117,6 @@ class JarvisBrain:
                 raw_text = response.text.strip()
                 
                 # The tools were executed automatically under the hood.
-                # So we can just return the final text response!
                 return {
                     "intent": "gemini_tool_execution",
                     "response_text": raw_text,
@@ -98,6 +138,26 @@ class JarvisBrain:
     def _rule_based_fallback(self, text):
         text_lower = text.lower()
 
+        # Screenshot fallback
+        if "ekran" in text_lower and ("rasm" in text_lower or "skrin" in text_lower or "ko'rsat" in text_lower or "yubor" in text_lower):
+            res = take_screenshot()
+            return {"intent": "screenshot", "response_text": f"Mac ekrani rasmga olindi.\n{res}", "parameters": {}}
+
+        # Video note / Krujok fallback
+        if "video" in text_lower or "krujok" in text_lower or "xonani ko'rsat" in text_lower:
+            res = record_webcam_video_note(5)
+            return {"intent": "video_note", "response_text": f"Xonadan video krujok yozib olindi.\n{res}", "parameters": {}}
+
+        # Webcam photo fallback
+        if "kamera" in text_lower or "foto" in text_lower:
+            res = take_webcam_photo()
+            return {"intent": "webcam_photo", "response_text": f"Kameradan foto surat olindi.\n{res}", "parameters": {}}
+
+        # System stats fallback
+        if any(w in text_lower for w in ["batareya", "xotira", "ram", "cpu", "disk", "tizim holati"]):
+            res = get_system_stats()
+            return {"intent": "system_stats", "response_text": res, "parameters": {}}
+
         # Shutdown intent
         if any(w in text_lower for w in ["o'chir", "yop", "chiqish", "xayr", "to'xta"]):
             return {
@@ -115,7 +175,6 @@ class JarvisBrain:
                     "parameters": {"app_name": "Telegram"}
                 }
             elif "yoz" in text_lower or "xabar" in text_lower:
-                # Extract possible recipient
                 words = text_lower.split()
                 recipient = "do'stim"
                 if "ga" in text_lower:
@@ -159,5 +218,5 @@ class JarvisBrain:
 
 if __name__ == "__main__":
     brain = JarvisBrain()
-    res = brain.process_command("Telegramni och va juramga salom yoz")
+    res = brain.process_command("Mac batareyasi qancha qolgan?")
     print(res)

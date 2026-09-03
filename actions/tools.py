@@ -554,5 +554,260 @@ def stop_youtube() -> str:
     except Exception as e:
         return f"YouTube ijrosini to'xtatishda xatolik: {e}"
 
+def take_screenshot() -> str:
+    """
+    Captures a full screenshot of the macOS screen and saves it as a temporary image.
+    Use this when the user asks to take a screenshot, show the screen, or send screen image.
+    """
+    print("🔧 Jarvis: Mac ekranini rasmga olmoqda...")
+    try:
+        path = "/tmp/jarvis_screenshot.png"
+        subprocess.run(["screencapture", "-x", path], check=True)
+        return f"SCREENSHOT_PATH:{path}"
+    except Exception as e:
+        return f"Skrinshot olishda xatolik: {e}"
+
+def take_webcam_photo() -> str:
+    """
+    Captures a photo using the Mac's built-in webcam.
+    Use this when the user asks for a webcam photo or picture of the room.
+    """
+    print("🔧 Jarvis: Mac kamerasidan foto surat olmoqda...")
+    try:
+        path = "/tmp/jarvis_webcam.png"
+        ffmpeg_path = "ffmpeg"
+        if os.path.exists("/opt/homebrew/bin/ffmpeg"):
+            ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
+            
+        cmd = [ffmpeg_path, "-y", "-f", "avfoundation", "-framerate", "30", "-video_size", "1280x720", "-i", "0", "-vframes", "1", path]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if proc.returncode == 0 and os.path.exists(path):
+            return f"WEBCAM_PATH:{path}"
+        else:
+            return f"Kameradan rasm olishda xatolik: {proc.stderr[:300]}"
+    except Exception as e:
+        return f"Kameradan rasm olishda xatolik: {e}"
+
+def record_webcam_video_note(duration_seconds: int = 5) -> str:
+    """
+    Records a 5-10 second video from the Mac webcam, formatted as a square 1:1 Telegram Video Note ('krujok').
+    Use this when the user asks to record a video of the room or send a video note.
+    
+    Args:
+        duration_seconds: Duration in seconds (default 5, max 15).
+    """
+    print(f"🔧 Jarvis: Mac kamerasidan {duration_seconds} soniyalik video note ('krujok') yozib olmoqda...")
+    try:
+        duration = max(3, min(int(duration_seconds), 15))
+        path = "/tmp/jarvis_video_note.mp4"
+        ffmpeg_path = "ffmpeg"
+        if os.path.exists("/opt/homebrew/bin/ffmpeg"):
+            ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
+            
+        cmd = [
+            ffmpeg_path, "-y",
+            "-f", "avfoundation",
+            "-framerate", "30",
+            "-video_size", "1280x720",
+            "-i", "0",
+            "-t", str(duration),
+            "-vf", "crop=ih:ih,scale=480:480",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            path
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=duration + 10)
+        if proc.returncode == 0 and os.path.exists(path):
+            return f"VIDEO_NOTE_PATH:{path}"
+        else:
+            return f"Video yozishda xatolik: {proc.stderr[:300]}"
+    except Exception as e:
+        return f"Video yozishda xatolik: {e}"
+
+def get_system_stats() -> str:
+    """
+    Checks and retrieves current macOS system status (Battery level, CPU %, RAM %, Free Disk space).
+    Use this when the user asks about battery level, memory usage, CPU, or system health.
+    """
+    print("🔧 Jarvis: Tizim ko'rsatkichlarini o'qimoqda...")
+    try:
+        import psutil
+        
+        # Battery status
+        battery_str = "Batareya ma'lumoti topilmadi"
+        try:
+            batt_proc = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True)
+            if batt_proc.returncode == 0:
+                lines = batt_proc.stdout.strip().split("\n")
+                if len(lines) > 1:
+                    battery_str = lines[1].strip()
+        except Exception:
+            pass
+
+        # CPU & RAM
+        cpu_usage = psutil.cpu_percent(interval=0.5)
+        mem = psutil.virtual_memory()
+        mem_used_gb = round(mem.used / (1024**3), 1)
+        mem_total_gb = round(mem.total / (1024**3), 1)
+        mem_percent = mem.percent
+
+        # Disk
+        disk = psutil.disk_usage('/')
+        disk_free_gb = round(disk.free / (1024**3), 1)
+        disk_total_gb = round(disk.total / (1024**3), 1)
+        disk_percent = disk.percent
+
+        result = (
+            f"📊 *Mac Tizim Holati:*\n"
+            f"🔋 *Batareya:* {battery_str}\n"
+            f"💻 *CPU ishlatilishi:* {cpu_usage}%\n"
+            f"🧠 *RAM (Xotira):* {mem_used_gb}GB / {mem_total_gb}GB ({mem_percent}%)\n"
+            f"💾 *Disk bo'sh joy:* {disk_free_gb}GB bo'sh (Jami: {disk_total_gb}GB, {disk_percent}% band)"
+        )
+        return result
+    except Exception as e:
+        return f"Tizim ma'lumotlarini olishda xatolik: {e}"
+
+def set_system_volume(volume_percent: int) -> str:
+    """
+    Sets the exact macOS system output volume percentage (0 to 100).
+    
+    Args:
+        volume_percent: Volume percentage level (0-100).
+    """
+    print(f"🔧 Jarvis: Ovozni {volume_percent}% ga sozlamoqda...")
+    try:
+        vol = max(0, min(int(volume_percent), 100))
+        cmd = f"set volume output volume {vol}"
+        subprocess.run(["osascript", "-e", cmd], check=True)
+        return f"Ovoz balandligi {vol}% ga sozlandi."
+    except Exception as e:
+        return f"Ovozni sozlashda xatolik: {e}"
+
+def control_music(action: str) -> str:
+    """
+    Controls media playback in Spotify or Apple Music (play, pause, next, previous, current_track).
+    
+    Args:
+        action: One of 'play', 'pause', 'next', 'previous', 'current_track'.
+    """
+    print(f"🔧 Jarvis: Musiqa pleyerida '{action}' buyrug'ini bajarmoqda...")
+    try:
+        act = action.lower().strip()
+        if act in ["play", "pause", "playpause", "toggle"]:
+            script = 'tell application "Spotify" to playpause'
+        elif act in ["next", "skip"]:
+            script = 'tell application "Spotify" to next track'
+        elif act in ["prev", "previous"]:
+            script = 'tell application "Spotify" to previous track'
+        elif act in ["current_track", "info", "now_playing", "what"]:
+            script = 'tell application "Spotify" to return (name of current track) & " - " & (artist of current track)'
+        else:
+            return "Noma'lum musiqa buyrug'i."
+
+        proc = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+        if proc.returncode == 0:
+            res = proc.stdout.strip()
+            if act in ["current_track", "info", "now_playing", "what"]:
+                msg = res if res else "Musiqa ma'lumoti topilmadi"
+                return f"🎵 Hozir ijro etilmoqda: {msg}"
+            return "Musiqa buyrug'i bajarildi."
+
+        else:
+            # Fallback to general system media key via key code
+            return "Spotify ishlamayapti yoki javob bermadi."
+    except Exception as e:
+        return f"Musiqani boshqarishda xatolik: {e}"
+
+def sleep_mac() -> str:
+    """
+    Puts the Mac computer display and system to sleep mode.
+    Use this when the user asks to put Mac to sleep, sleep computer, or turn off display.
+    """
+    print("🔧 Jarvis: Mac-ni uyqu rejimiga o'tkazmoqda...")
+    try:
+        subprocess.run(["pmset", "sleepnow"], check=True)
+        return "Macbook uyqu rejimiga o'tkazildi."
+    except Exception as e:
+        return f"Uyqu rejimiga o'tkazishda xatolik: {e}"
+
+def search_and_send_file(filename_query: str) -> str:
+    """
+    Searches for a file in the user's Mac home directory using Spotlight (mdfind) and returns the path for Telegram sending.
+    
+    Args:
+        filename_query: File name or pattern to search for (e.g. 'document.pdf', 'report').
+    """
+    print(f"🔧 Jarvis: '{filename_query}' faylini Mac-dan qidirmoqda...")
+    try:
+        cmd = ["mdfind", "-onlyin", os.path.expanduser("~"), "-name", filename_query]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        lines = [line.strip() for line in proc.stdout.strip().split("\n") if line.strip()]
+        
+        if not lines:
+            return f"'{filename_query}' nomli fayl topilmadi."
+            
+        target_path = lines[0]
+        return f"FILE_PATH:{target_path}"
+    except Exception as e:
+        return f"Fayl qidirishda xatolik: {e}"
+
+def set_timer(minutes: float, message: str = "Vaqt tugadi!") -> str:
+    """
+    Sets a background timer for specified minutes. When time expires, sends a macOS notification and Telegram message.
+    
+    Args:
+        minutes: Number of minutes to wait (can be decimal like 0.5 for 30 seconds).
+        message: The message to notify when timer finishes.
+    """
+    print(f"🔧 Jarvis: {minutes} daqiqaga taymer o'rnatmoqda: '{message}'...")
+    try:
+        import threading
+        import time
+        import config
+        
+        seconds = float(minutes) * 60.0
+        
+        def timer_worker():
+            time.sleep(seconds)
+            # 1. Desktop Notification
+            try:
+                script = f'display notification "{message}" with title "⏰ Jarvis Taymer!"'
+                subprocess.run(["osascript", "-e", script])
+            except Exception:
+                pass
+                
+            # 2. Telegram Alert to Owner
+            try:
+                if config.TELEGRAM_BOT_TOKEN and config.ALLOWED_TELEGRAM_USER_IDS:
+                    owner_id = config.ALLOWED_TELEGRAM_USER_IDS[0]
+                    api_url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage"
+                    requests.post(api_url, json={"chat_id": owner_id, "text": f"⏰ *Jarvis Taymer:* {message}", "parse_mode": "Markdown"}, timeout=10)
+            except Exception as e:
+                print(f"⚠️ Timer Telegram notification error: {e}")
+
+        t = threading.Thread(target=timer_worker, daemon=True)
+        t.start()
+        return f"{minutes} daqiqalik taymer muvaffaqiyatli o'rnatildi! ({message})"
+    except Exception as e:
+        return f"Taymer o'rnatishda xatolik: {e}"
+
+def summarize_webpage(url: str) -> str:
+    """
+    Scrapes a webpage link and provides a concise Uzbek summary of its content.
+    
+    Args:
+        url: Webpage URL to summarize.
+    """
+    print(f"🔧 Jarvis: Sayt mazmunini tahlil qilmoqda: {url}...")
+    try:
+        content = read_webpage_content(url)
+        if "xatolik" in content.lower() or len(content) < 30:
+            return f"Sayt mazmunini o'qib bo'lmadi: {content}"
+        return f"Veb sahifa mazmuni tahlil uchun tayyor (uzunligi: {len(content)} belgi):\n\n{content}"
+    except Exception as e:
+        return f"Sayt tahlilida xatolik: {e}"
+
+
 
 
