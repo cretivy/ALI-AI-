@@ -19,11 +19,27 @@ except Exception as e:
     HAS_WEB_UI = False
     print(f"Web UI yuklanmadi: {e}")
 
+from license import check_saved_license, verify_license
+
 class JarvisAssistant:
     def __init__(self):
         show_banner()
         show_status("Tizim ishga tushirilmoqda...", "bold yellow")
         
+        # Verify License Key
+        valid, lic_msg = check_saved_license()
+        if not valid:
+            show_status("🔑 Litsenziya kalitini kiritishingiz kerak!", "bold red")
+            print(f"⚠️ {lic_msg}")
+            # Prompt user in terminal if running CLI
+            user_key = input("🔑 Litsenziya kalitingizni kiriting (Masalan: MUNISA-TEST-1111-2026): ").strip()
+            valid, lic_msg = verify_license(user_key)
+            if not valid:
+                show_status(f"🛑 Xatolik: {lic_msg}", "bold red")
+                sys.exit(1)
+
+        show_status(lic_msg, "bold green")
+
         # Initialize modules
         self.stt = UzbekSTT()
         self.tts = UzbekTTS()
