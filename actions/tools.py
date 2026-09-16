@@ -4,6 +4,33 @@ import re
 import urllib.parse
 import os
 
+_gesture_instance = None
+
+def toggle_gesture_control(enable: bool) -> str:
+    """
+    Enables or disables webcam hand gesture control for switching macOS Desktop spaces and controlling media.
+    
+    Args:
+        enable: True to start hand gesture detection, False to stop it.
+    """
+    global _gesture_instance
+    status_str = "yoqilmoqda" if enable else "o'chirilmoqda"
+    print(f"🔧 Jarvis: Qo'l harakati boshqaruvi ({status_str})...")
+    try:
+        from gestures import GestureController
+        if enable:
+            if _gesture_instance is None:
+                _gesture_instance = GestureController()
+            _gesture_instance.start()
+            return "Qo'l harakati (Hand Gesture) boshqaruvi yoqildi! Kamerangizga qo'lingiz bilan chapga/o'ngga swipe qilib Desktop almashtirishingiz mumkin."
+        else:
+            if _gesture_instance is not None:
+                _gesture_instance.stop()
+                _gesture_instance = None
+            return "Qo'l harakati boshqaruvi to'xtatildi."
+    except Exception as e:
+        return f"Gesture boshqaruvini o'zgartirishda xatolik: {e}"
+
 def open_application(app_name: str) -> str:
     """
     Launches a macOS application by name.

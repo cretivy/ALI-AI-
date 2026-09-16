@@ -26,5 +26,11 @@ __pycache__/
 *.log
 *.err.log
 
+# Media & Temp files
+*.mp3
+*.wav
+*.mp4
+/tmp/
+
 # Scratch files
 scratch/

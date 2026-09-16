@@ -31,7 +31,8 @@ from actions.tools import (
     sleep_mac,
     search_and_send_file,
     set_timer,
-    summarize_webpage
+    summarize_webpage,
+    toggle_gesture_control
 )
 
 class JarvisBrain:
@@ -105,7 +106,8 @@ class JarvisBrain:
                     sleep_mac,
                     search_and_send_file,
                     set_timer,
-                    summarize_webpage
+                    summarize_webpage,
+                    toggle_gesture_control
                 ]
                 response = self.client.models.generate_content(
                     model="gemini-2.5-flash",

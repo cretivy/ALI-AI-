@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS HUD - Stark Industries</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="state-idle">
+  <div class="bg-grid"></div>
+
+  <!-- Top Header -->
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-icon"></div>
+      <div class="brand-title">JARVIS AI v1.0</div>
+    </div>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span id="status-text">STARK CORE ONLINE</span>
+    </div>
+  </header>
+
+  <!-- Central Arc Reactor Orb Canvas -->
+  <main class="hud-center">
+    <canvas id="hud-canvas" width="380" height="380"></canvas>
+    <div class="center-info">
+      <div class="mode-badge" id="mode-title">IDLE</div>
+      <div class="sub-badge" id="mode-sub">KUTISH REJIMIDA</div>
+      
+      <!-- Interactive Speech / Listen Button -->
+      <button id="mic-btn" onclick="handleMicClick()" title="Ovozli buyruq berish uchun bosing">
+        <span class="mic-icon">🎤</span>
+        <span class="mic-label">GAPIRISH</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Bottom Data Panels -->
+  <footer class="hud-footer">
+    <div class="hud-card">
+      <div class="card-label">🎤 OVOZLI BUYRUQ (STT)</div>
+      <div class="card-content" id="transcript-text">Kutilmoqda...</div>
+    </div>
+    <div class="hud-card">
+      <div class="card-label">🤖 JARVIS JAVOBI</div>
+      <div class="card-content" id="response-text">Assalomu alaykum! Jarvis tayyor.</div>
+    </div>
+  </footer>
+
+  <script src="hud.js"></script>
+</body>
+</html>

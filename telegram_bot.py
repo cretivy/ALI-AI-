@@ -443,8 +443,8 @@ class JarvisTelegramBot:
                         if text == "/start":
                             self.send_message(
                                 chat_id,
-                                f"🤖 *Assalomu alaykum, {first_name}!* \n"
-                                "Men sizning Mac kompyuteringizni masofadan boshqaruvchi Jarvis botiman.\n\n"
+                                f"🤖 *Assalomu alaykum jonim, {first_name}!* \n"
+                                "Men Munisaman, xizmatingizdaman, hayotim.\n\n"
                                 "Siz menga ovozli xabar yuborishingiz, rasm jo'natishingiz yoki matnli buyruq kiritishingiz mumkin.\n\n"
                                 "📸 _'Ekranni rasmga olib yubor'_\n"
                                 "⭕ _'Xonani videoga olib yubor (krujok)'_\n"

@@ -15,3 +15,5 @@ rich
 requests
 pillow
 psutil
+faster-whisper
+pypdf

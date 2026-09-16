@@ -13,7 +13,9 @@ class UzbekSTT:
             self.pipe = None
             return
 
-        print("⏳ STT Moduli yuklanmoqda (islomov/rubaistt_v2_medium)...")
+        print(f"⏳ STT Moduli yuklanmoqda ({config.STT_MODEL_NAME})...")
+        self.pipe = None
+
         # Check Apple Silicon MPS support
         if torch.backends.mps.is_available():
             self.device = "mps"
@@ -29,7 +31,7 @@ class UzbekSTT:
                 device=self.device,
                 dtype=torch.float32
             )
-            print("✅ STT Moduli muvaffaqiyatli yuklandi!")
+            print("✅ PyTorch STT Moduli (MPS GPU) muvaffaqiyatli yuklandi!")
         except Exception as e:
             print(f"⚠️ MPS xatosi bo'lsa CPUga o'tilmoqda: {e}")
             self.device = "cpu"
@@ -38,9 +40,9 @@ class UzbekSTT:
                 model=config.STT_MODEL_NAME,
                 device="cpu"
             )
-            print("✅ STT Moduli CPUda yuklandi!")
+            print("✅ PyTorch STT Moduli CPUda yuklandi!")
 
-    def record_audio_vad(self, duration=config.MAX_RECORD_SECONDS, sample_rate=config.SAMPLE_RATE):
+    def record_audio_vad(self, duration=config.MAX_RECORD_SECONDS, sample_rate=config.SAMPLE_RATE, audio_callback=None):
         """Microphone capture with Voice Activity Detection (VAD)"""
         import time
         print("\n🎤 Gapiring (Ovoz tinglanmoqda)...")
@@ -64,7 +66,11 @@ class UzbekSTT:
                     recording.append(data)
                     
                     # Calculate volume (RMS)
-                    rms = np.sqrt(np.mean(data**2))
+                    rms = float(np.sqrt(np.mean(data**2)))
+                    if audio_callback:
+                        # Scale rms to 0.0 - 1.0 range
+                        norm_level = min(1.0, rms * 15.0)
+                        audio_callback(norm_level)
                     
                     # Detect speech activity
                     if rms > silence_threshold:
@@ -123,6 +129,7 @@ class UzbekSTT:
         if np.max(np.abs(audio_data)) > 0:
             audio_data = audio_data / np.max(np.abs(audio_data))
 
+        # PyTorch Pipeline Inference (MPS GPU Accelerated)
         inputs = {"raw": audio_data, "sampling_rate": sample_rate}
         result = self.pipe(inputs)
         transcription = result.get("text", "").strip()

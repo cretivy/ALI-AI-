@@ -1,0 +1,281 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+:root {
+  --cyan-glow: #00f3ff;
+  --blue-glow: #0077ff;
+  --purple-glow: #a855f7;
+  --gold-glow: #ffb700;
+  --red-glow: #ff2a5f;
+  --bg-dark: #040814;
+  --panel-bg: rgba(6, 15, 36, 0.65);
+  --border-cyan: rgba(0, 243, 255, 0.3);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background-color: var(--bg-dark);
+  color: #e0f2fe;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background: radial-gradient(circle at center, #0a1936 0%, #030712 100%);
+}
+
+/* Background Grid Effect */
+.bg-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 243, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Header Bar */
+.hud-header {
+  width: 100%;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+  background: rgba(4, 12, 28, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.brand-icon {
+  width: 14px;
+  height: 14px;
+  background: var(--cyan-glow);
+  box-shadow: 0 0 15px var(--cyan-glow);
+  transform: rotate(45deg);
+}
+
+.brand-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-shadow: 0 0 12px var(--cyan-glow);
+}
+
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--cyan-glow);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan-glow);
+  box-shadow: 0 0 10px var(--cyan-glow);
+  animation: pulse-dot 1.5s infinite alternate;
+}
+
+@keyframes pulse-dot {
+  0% { opacity: 0.3; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Central Orb Visualizer Container */
+.hud-center {
+  position: relative;
+  width: 380px;
+  height: 380px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+canvas#hud-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.center-info {
+  position: absolute;
+  text-align: center;
+  pointer-events: auto; /* Enable click on mic button */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+}
+
+.mode-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--cyan-glow);
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--cyan-glow);
+  transition: all 0.3s ease;
+}
+
+.sub-badge {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 1px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+/* Interactive Speech Button */
+#mic-btn {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(0, 119, 255, 0.4));
+  border: 1.5px solid var(--cyan-glow);
+  border-radius: 25px;
+  padding: 8px 18px;
+  color: #ffffff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+#mic-btn:hover {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.4), rgba(0, 119, 255, 0.7));
+  box-shadow: 0 0 25px var(--cyan-glow), inset 0 0 15px var(--cyan-glow);
+}
+
+#mic-btn:active {
+  transform: scale(0.95);
+}
+
+.mic-icon {
+  font-size: 14px;
+}
+
+/* Bottom HUD Panels */
+.hud-footer {
+  width: 100%;
+  padding: 20px 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  z-index: 10;
+}
+
+.hud-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-cyan);
+  border-radius: 8px;
+  padding: 16px 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.hud-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--cyan-glow);
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
+
+.card-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--cyan-glow);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-content {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+/* Dynamic State Styles */
+body.state-listening .mode-badge {
+  color: var(--cyan-glow);
+  text-shadow: 0 0 15px var(--cyan-glow);
+}
+
+body.state-listening #mic-btn {
+  border-color: var(--cyan-glow);
+  background: rgba(0, 243, 255, 0.5);
+  box-shadow: 0 0 30px var(--cyan-glow);
+  animation: pulse-btn 1s infinite alternate;
+}
+
+@keyframes pulse-btn {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.06); }
+}
+
+body.state-thinking .mode-badge {
+  color: var(--purple-glow);
+  text-shadow: 0 0 15px var(--purple-glow);
+}
+
+body.state-thinking .hud-card::before {
+  background: var(--purple-glow);
+  box-shadow: 0 0 10px var(--purple-glow);
+}
+
+body.state-speaking .mode-badge {
+  color: var(--gold-glow);
+  text-shadow: 0 0 15px var(--gold-glow);
+}
+
+body.state-speaking .hud-card::before {
+  background: var(--gold-glow);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
